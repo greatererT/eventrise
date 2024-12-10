@@ -1,10 +1,13 @@
 from math import sqrt, pow
 import random
+#locations = {"a": [0, 50], "b": [0, 20], "c": [0, 90], "d": [99, 149],
+#              "e": [70, 40], "f": [0, 130]}
 locations = {"a": [20, 52], "b": [122, 161], "c": [70, 60], "d": [99, 149],
               "e": [70, 40], "f": [99, 124]}
 DISTANCE = 0
 PATH = 1
-
+#    distances = {"a": [999, start_point], "b": [999, start_point], "c": [999, start_point],
+#                "d": [999, start_point], "e": [999, start_point], "f": [999, start_point]}
 
 def calc_distance(start, end):
     """accepts two [x,y] coordinates."""
@@ -105,62 +108,79 @@ a.calculate_travel_time(100)
 
 
 
-
-
+# Key: location(str), value: list of routes that are available to it, with start_point always being the key.
 routes = {}
 
-def populate_routes():
+
+def populate_routes(max_distance):
+    """
+    max_distance: int. 
+    makes routes between all locations who's distance is smaller than max_distance.
+    """
     for start_name, start_coordinates in locations.items():
         closest_locations=[]
         for end_name, end_coordinates in locations.items():
             distance = calc_distance(start_coordinates, end_coordinates)
-            if distance < 75 and start_name != end_name:
+            if distance < max_distance and start_name != end_name:
                 closest_locations.append([end_name, distance])
         print(f"closest to {start_name}: {closest_locations}")
         routes[start_name]= [Route(start_name,location[0],location[1]) for location in closest_locations]
 
-populate_routes()
-for key, vals in routes.items():
-    for val in vals:
-        print(f"key: {key}, val: {val}")
+populate_routes(75)
 
 
 
-def dijkstra(start_point, end_point):
-    distances = {"a": [999, start_point], "b": [999, start_point], "c": [999, start_point],
-                "d": [999, start_point], "e": [999, start_point], "f": [999, start_point]}
-    path = start_point
+
+def find_optimal_route(start_point, end_point, algorithm):
+    """
+    takes two points (str names of locations) and calculates shortest route between them using available routes.
+    which algorithm is used is based on algorithm var. options are a star and dijkstra.\n
+    Returns the path found as a string concatenation of all locations.
+    """
+
+    # Key: location. Value: list containing path length from start point, and path taken (list with a string of all locations.)
+    distances={}
+
+    # Populates distances based on locations.
+    for location in locations.keys():
+        distances[location]=[9999, start_point]
+
     path_length = 0
     visited = []
     current_point=start_point
+    
+    #Sets the distance of start point to 0 (because distance is always measured from start point.)
     distances[start_point]=[0,start_point]
 
+    for i in range(len(locations)-1):
+        # doesnt matter which point it is as long as is wasn't visited, end_point is never be visited.
+        min = end_point
 
-    for i in range(5):
-        min = max(distances, key=distances.get)
-
+        # Checks all routes starting from current point.
         for route in routes[current_point]:
-            if path_length+route.distance < distances[route.end_point][DISTANCE]:                
+            if route.end_point == end_point:
+                return(distances[current_point][1]+route.end_point)
+            
+            # Checks if the found path is smaller than the smallest path to a certain point found until now.
+            # If it is, it replaces it.
+            if path_length+route.distance < distances[route.end_point][DISTANCE]:
                 distances[route.end_point] = [path_length+route.distance, distances[current_point][1]+route.end_point]
 
         visited.append(current_point)
-        print(current_point)
-        for point, vals in distances.items():
-            min = point if vals[DISTANCE] < distances[min][DISTANCE] and point not in visited else min
-        
 
-        #current_point = min(not_visited, key = not_visited.get)
+        if algorithm == "a star":
+            for point, vals in distances.items():
+                min = point if vals[DISTANCE]+calc_distance(locations[point],locations[end_point])  < \
+                    distances[min][DISTANCE]+calc_distance(locations[min],locations[end_point]) and point not in visited else min
+        elif algorithm == "dijkstra":
+            for point, vals in distances.items():
+                min = point if vals[DISTANCE] < distances[min][DISTANCE] and point not in visited else min
+        else:
+            print("incorrect algorithm name! options are: a star, dijkstra")
+            return
+
         current_point = min
-        print(f"aaaAAaa{current_point}")
-        path = str(distances[current_point][PATH])
         path_length = distances[current_point][DISTANCE]
 
-        for currentpoint, path in distances.items():
-            print(currentpoint, path)
-            
-print("------------")
 
-dijkstra("a","f")
-
-        
-        
+print(find_optimal_route("b","a","a star"))
